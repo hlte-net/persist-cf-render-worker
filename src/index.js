@@ -25,8 +25,17 @@ export default {
 			waitUntil: 'networkidle2',
 		});
 
-		console.log(`Rendering ${url} as PDF...`);
-		const pdfBytes = await page.pdf({ format: 'letter' });
+		let pdfOpts = { format: 'letter' };
+		const optsParam = searchParams.get("pdfOpts");
+		if (optsParam) {
+			try {
+				pdfOpts = { ...pdfOpts, ...JSON.parse(atob(optsParam)) };
+			} catch (error) {
+				console.error('pdfOpts', optsParam, error)
+			}
+		}
+		console.log(`Rendering ${url} as PDF...`, pdfOpts);
+		const pdfBytes = await page.pdf(pdfOpts);
 		console.log(`Rendered ${pdfBytes.length} PDF bytes...`);
 
 		console.log(`Screenshotting ${url}...`);

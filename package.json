@@ -5,12 +5,12 @@
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
-    "start": "wrangler dev",
-    "test": "vitest"
+    "start": "wrangler dev"
   },
   "devDependencies": {
+    "@cloudflare/puppeteer": "^0.0.12",
     "@cloudflare/vitest-pool-workers": "^0.4.5",
-    "wrangler": "^3.60.3",
-    "vitest": "1.5.0"
+    "vitest": "1.5.0",
+    "wrangler": "^3.60.3"
   }
 }

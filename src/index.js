@@ -2,36 +2,55 @@ import puppeteer from "@cloudflare/puppeteer";
 
 export default {
 	async fetch(request, env) {
+		const allow = await env.KV_STORE.get("token");
+		const token = request.headers.get("x-hlte-token");
+		if (!token || token !== allow) {
+			return new Response(null, { status: 403 });
+		}
+
 		const { searchParams } = new URL(request.url);
 		let url = searchParams.get("url");
-		if (url) {
-			url = new URL(url).toString();
-			const browser = await puppeteer.launch(env.BROWSER);
-			const page = await browser.newPage();
-			console.log(`Browsing to ${url}...`);
-			await page.goto(url, {
-				waitUntil: 'networkidle2',
-			});
-			const name = 'foobarbaz.pdf';
-			console.log(`Rendering ${url} as PDF...`);
-			const pdfBytes = await page.pdf({
-				format: 'letter',
-			});
-			await browser.close();
-			console.log(`Rendered ${pdfBytes.length} bytes...`);
-			const { etag } = await env.PERSIST_BUCKET.put(name, pdfBytes);
-			console.log(`Persisted ${url} as ${name} (etag=${etag})`);
-			return new Response(pdfBytes, {
-				headers: {
-					"content-type": "application/pdf",
-					"r2-name": name,
-					"r2-etag": etag,
-				},
-			});
-		} else {
-			return new Response(
-				"Please add an ?url=https://example.com/ parameter"
-			);
+		const hlteUuid = searchParams.get("hlteUuid");
+
+		if (!url || !hlteUuid) {
+			return new Response("url & hlteUuid parameters are required");
 		}
+
+		url = new URL(url).toString();
+		const browser = await puppeteer.launch(env.BROWSER);
+		const page = await browser.newPage();
+
+		console.log(`Browsing to ${url}...`);
+		await page.goto(url, {
+			waitUntil: 'networkidle2',
+		});
+
+		console.log(`Rendering ${url} as PDF...`);
+		const pdfBytes = await page.pdf({ format: 'letter' });
+		console.log(`Rendered ${pdfBytes.length} PDF bytes...`);
+
+		console.log(`Screenshotting ${url}...`);
+		const ssBytes = await page.screenshot({ fullPage: true });
+		console.log(`Rendered ${ssBytes.length} screenshot bytes...`);
+
+		await browser.close();
+
+		const pdfRes = await env.PERSIST_BUCKET.put(hlteUuid + ".pdf", pdfBytes);
+		console.log(`Persisted ${url} to PDF (etag=${pdfRes.etag})`);
+
+		const imgRes = await env.PERSIST_BUCKET.put(hlteUuid + ".png", ssBytes);
+		console.log(`Persisted ${url} to PNG (etag=${imgRes.etag})`);
+
+		return new Response(JSON.stringify({
+			input: { url, hlteUuid },
+			outputs: {
+				pdf: pdfRes,
+				png: imgRes
+			}
+		}), {
+			headers: {
+				"content-type": "text/json",
+			},
+		});
 	},
 };

@@ -10,3 +10,8 @@ browser = { binding = "BROWSER" }
 binding = "PERSIST_BUCKET"
 bucket_name = "hlte-persistence"
 preview_bucket_name = "hlte-persistence"
+
+[[kv_namespaces]]
+binding = "KV_STORE"
+id = "ba6796c74c8c443abf0879cc8979c87a"
+preview_id = "ba6796c74c8c443abf0879cc8979c87a"
